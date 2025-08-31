@@ -38,6 +38,7 @@ const langs = (args.l || args.langs || DEFAULT_LANGS)
   .filter(v => v)
 
 ;(async () => {
+  /*
   let text = content
   console.log(colors.green('【原话】'))
   console.log(`${text}`)
@@ -54,7 +55,38 @@ const langs = (args.l || args.langs || DEFAULT_LANGS)
   // 进度条停止
   bar.stop()
   console.log(colors.red(`【翻译 ${time} 次后的结果】`))
-  console.log(text)
+  console.log(text)*/
+  const path = require('path');
+const fs = require('fs');
+
+;(async () => {
+  let text = content;
+  const bar = new cliProgress.SingleBar({}, cliProgress.Presets.rect);
+  bar.start(time, 0);
+
+  for (let i = 0; i < time; i++) {
+    const slIdx = i % langs.length;
+    const tlIdx = slIdx < langs.length - 1 ? slIdx + 1 : 0;
+    text = await translate(text, langs[slIdx], langs[tlIdx]);
+    bar.update(i + 1);
+  }
+  bar.stop();
+
+  // 生成文件名：output_20250829_153012.txt
+  const now = new Date();
+  const stamp = now.toISOString()
+                   .replace(/[-:]/g, '')
+                   .replace('T', '_')
+                   .slice(0, 15);        // 取到分钟级
+  const outFile = path.join(__dirname, `output_${stamp}.txt`);
+
+  const outText =
+    `【原话】\n${content}\n\n【翻译 ${time} 次后的结果】\n${text}\n`;
+  fs.writeFileSync(outFile, outText, 'utf8');
+
+  console.log(colors.green('结果已保存至：' + outFile));
+})();
+
 })()
 
 /**
@@ -65,6 +97,8 @@ const langs = (args.l || args.langs || DEFAULT_LANGS)
  * @param {string} tl 目标语言
  * @returns 翻译后的结果
  */
+ 
+/*
 async function translate(text, sl, tl) {
   // 需要进行 URL 编码，否则回车符无法保留
   text = encodeURIComponent(text)
@@ -72,7 +106,7 @@ async function translate(text, sl, tl) {
   const tk = await getTK(text, sl, tl)
   // 这里的 dt=t 是指定返回的内容格式，而设定 client=gtx 可以不触发请求频率阈值，否则请求速度过快很容易 403
   const url = `https://translate.google.cn/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&tk=${tk}&q=${text}`
-  const res = await got(url)
+  const res = await got.get(url)
   // 如果是多行文本，这里会被分割为一个数组，需要重新组合
   const result = JSON.parse(res.body)[0]
     .map(v => v[0])
@@ -80,6 +114,30 @@ async function translate(text, sl, tl) {
   return result
 }
 
+*/
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function translate(text, sl, tl) {
+  
+  await sleep(300 + Math.random() * 500);
+  const url = 'https://translate.googleapis.com/translate_a/single';
+  const res = await got.post(url, {
+    form: {
+      client: 'gtx',
+      sl: sl,
+      tl: tl,
+      dt: 't',
+      q: text,
+    },
+  });
+
+  const result = JSON.parse(res.body)[0]
+    .map(v => v[0])
+    .join('');
+  return result;
+}
 /**
  * 从网页中获取谷歌翻译的 TKK 值
  *
@@ -88,13 +146,15 @@ async function translate(text, sl, tl) {
  * @param {string} tl 目标语言
  * @returns 获取的 TKK 值
  */
+ 
+/*
 async function getTKK(text, sl, tl) {
   const url = `https://translate.google.cn/#view=home&op=translate&sl=${sl}&tl=${tl}&text=${text}`
-  const res = await got(url)
+  const res = await got.get(url)
   const tkk = res.body.match(/tkk:'(.+?)'/)[1]
   return tkk
 }
-
+*/
 /**
  * 获取谷歌翻译的 TK 值
  *
@@ -103,6 +163,7 @@ async function getTKK(text, sl, tl) {
  * @param {string} tl 目标语言
  * @returns 获取的 TK 值
  */
+/*
 async function getTK(text, sl, tl) {
   const tkk = await getTKK(text, sl, tl)
   // 这段加密过程的计算代码是被加密过的，所以是人类不可读的，直接复制出来使用
@@ -147,3 +208,4 @@ async function getTK(text, sl, tl) {
   }
   return tk(text)
 }
+*/
